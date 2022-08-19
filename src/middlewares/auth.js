@@ -7,7 +7,7 @@ const authenticate = (req, res, next) => {
         const verified = jwt.verify(token, process.env.SECRET_KEY)
         req.verifiedUser = verified.user
     } catch (error) {
-        
+        console.log(error)
     }
 
     next()
