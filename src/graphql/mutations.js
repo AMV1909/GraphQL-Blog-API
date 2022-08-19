@@ -89,4 +89,25 @@ const updatePost = {
     }
 }
 
-module.exports = { register, login, createPost, updatePost }
+const deletePost = {
+    type: GraphQLString,
+    description: "Delete a post",
+    args: {
+        id: { type: GraphQLID }
+    },
+    resolve: async (_, { id }, { verifiedUser }) => {
+        if (!verifiedUser) {
+            throw new Error("You must be logged in to delete a post")
+        }
+
+        const deletedPost = await Post.findOneAndDelete({ _id: id, authorId: verifiedUser._id })
+
+        if (!deletedPost) {
+            throw new Error("You do not have permission to delete this post")
+        }
+
+        return "Post deleted"
+    }
+}
+
+module.exports = { register, login, createPost, updatePost, deletePost }
