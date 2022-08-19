@@ -1,8 +1,8 @@
 const { GraphQLString, GraphQLID } = require("graphql")
 
-const { User, Post } = require("../models/models")
+const { User, Post, Comment } = require("../models/models")
 const { createJWtToken } = require("../util/auth")
-const { PostType } = require("./types")
+const { PostType, CommentType } = require("./types")
 
 const register = {
     type: GraphQLString,
@@ -31,10 +31,10 @@ const login = {
         email: { type: GraphQLString },
         password: { type: GraphQLString }
     },
-    resolve: async (_, args) => {
-        const user = await User.findOne({email: args.email}).select("+password")
+    resolve: async (_, { email, password }) => {
+        const user = await User.findOne({email: email}).select("+password")
 
-        if(!user || args.password !== user.password) {
+        if(!user || password !== user.password) {
             throw new Error("Invalid credentials")
         }
 
@@ -51,14 +51,14 @@ const createPost = {
         title: { type: GraphQLString },
         body: { type: GraphQLString }
     },
-    resolve: async (_, args, { verifiedUser }) => {
-        const newPost = new Post({
-            title: args.title,
-            body: args.body,
+    resolve: async (_, { title, body }, { verifiedUser }) => {
+        const newPost = await new Post({
+            title: title,
+            body: body,
             authorId: verifiedUser._id
         })
 
-        return await newPost.save()
+        return newPost.save()
     }
 }
 
@@ -110,4 +110,26 @@ const deletePost = {
     }
 }
 
-module.exports = { register, login, createPost, updatePost, deletePost }
+const createComment = {
+    type: CommentType,
+    description: "Create a new comment",
+    args: {
+        postId: { type: GraphQLID },
+        comment: { type: GraphQLString }
+    },
+    resolve: async (_, { postId, comment }, { verifiedUser }) => {
+        if (!verifiedUser) {
+            throw new Error("You must be logged in to comment")
+        }
+
+        const newComment = await new Comment({
+            postId: postId,
+            comment: comment,
+            userId: verifiedUser._id
+        })
+
+        return newComment.save()
+    }
+}
+
+module.exports = { register, login, createPost, updatePost, deletePost, createComment }
