@@ -62,9 +62,9 @@ const createPost = {
     }
 }
 
-const updatePost = {
+const editPost = {
     type: PostType,
-    description: "Update a post",
+    description: "Edit a post",
     args: {
         id: { type: GraphQLID },
         title: { type: GraphQLString },
@@ -132,4 +132,51 @@ const createComment = {
     }
 }
 
-module.exports = { register, login, createPost, updatePost, deletePost, createComment }
+const editComment = {
+    type: CommentType,
+    description: "Edit a comment",
+    args: {
+        id: { type: GraphQLID },
+        comment: { type: GraphQLString }
+    },
+    resolve: async (_, { id, comment }, { verifiedUser }) => {
+        if (!verifiedUser) {
+            throw new Error("You must be logged in to update a comment")
+        }
+
+        const updatedComment = await Comment.findOneAndUpdate(
+            { _id: id, userId: verifiedUser._id },
+            { comment },
+            { new: true, runValidators: true }
+        )
+
+        if (!updatedComment) {
+            throw new Error("You do not have permission to update this comment")
+        }
+
+        return updatedComment
+    }
+}
+
+const deleteComment = {
+    type: GraphQLString,
+    description: "Delete a comment",
+    args: {
+        id: { type: GraphQLID }
+    },
+    resolve: async (_, { id }, { verifiedUser }) => {
+        if (!verifiedUser) {
+            throw new Error("You must be logged in to delete a comment")
+        }
+
+        const deletedComment = await Comment.findOneAndDelete({ _id: id, userId: verifiedUser._id })
+
+        if (!deletedComment) {
+            throw new Error("You do not have permission to delete this comment")
+        }
+
+        return "Comment deleted"
+    }
+}
+
+module.exports = { register, login, createPost, editPost, deletePost, createComment, editComment, deleteComment }
